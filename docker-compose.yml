@@ -1,0 +1,55 @@
+---
+version: '2'
+services:
+  # The environment variable "TAG" is used throughout this file to
+  # specify the version of the images to run. The default is set in the
+  # '.env' file in this folder. It can be overridden with any normal
+  # technique for setting environment variables, for example:
+  #
+  #   TAG=6.0.0-beta1 docker-compose up
+  #
+  # REF: https://docs.docker.com/compose/compose-file/#variable-substitution
+  #
+  # Also be sure to set the ELASTIC_VERSION variable. For released versions,
+  # ${TAG} and ${ELASTIC_VERSION} will be identical, but for pre-release
+  # versions, ${TAG} might contain an extra build identifier, like
+  # "6.0.0-beta1-3eab5b40", so a full invocation might look like:
+  #
+  #   ELASTIC_VERSION=6.0.0-beta1 TAG=6.0.0-beta1-3eab5b40 docker-compose up
+  #
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:${TAG}
+    container_name: elasticsearch
+    environment: ['http.host=0.0.0.0', 'transport.host=127.0.0.1', 'ELASTIC_PASSWORD=${ELASTIC_PASSWORD}']
+    ports: ['9200:9200']
+    networks: ['elk']
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana-oss:${TAG}
+    container_name: kibana
+    environment:
+      SERVER_NAME: kibana.example.org
+      ELASTICSEARCH_URL: http://elkproxy:9200
+      ELASTICSEARCH_USERNAME: kibana
+      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
+    ports: ['5601:5601']
+    networks: ['elk']
+    depends_on: ['elkproxy']
+
+  elkproxy:
+    build: elkproxy
+    volumes:
+      - ./elkproxy/app:/app
+    ports: ['9201:9200']
+    networks: ['elk']
+    environment:
+      ELASTICSEARCH_URL: http:///elasticsearch:9200
+      PORT: 9200
+    depends_on: ['elasticsearch']
+
+networks:
+  elk:
+    driver: bridge
+  
