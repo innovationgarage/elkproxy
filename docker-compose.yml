@@ -34,6 +34,7 @@ services:
       ELASTICSEARCH_URL: http://elkproxy:9200
       ELASTICSEARCH_USERNAME: kibana
       ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTICSEARCH_REQUESTHEADERSWHITELIST: "Cookie"
     ports: ['5601:5601']
     networks: ['elk']
     depends_on: ['elkproxy']

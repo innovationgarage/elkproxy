@@ -8,37 +8,49 @@ app = flask.Flask(__name__)
 
 debug = 0
 
-if debug == 0:    
+if debug == 0:
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 def flatten(it):
     return (item for sublist in it for item in sublist)
     
-def msearch_query_filter(header, body):
-    body["query"] = {"bool": {"must": [
-        {
-            "query_string": {
-                "query": "/styles/ad-blocker.css",
-                "analyze_wildcard": True,
-                "default_field": "*"
-            }
-        },
-        body["query"]
-    ]}}
-    return header, body
+def search_query_filter(body):
+    if body.get("query") == {"bool":{"filter":[{"term":{"type":"index-pattern"}}]}}:
+        return body
+
+    if body.get("aggs") == {"indices":{"terms":{"field":"_index","size":120}}}:
+        return body
+
+    body["query"] = {"bool":
+                     {"must": [q for q in [body.get("query")] if q is not None],
+                      "filter": [{
+                         "query_string": {
+                             "query": "/styles/ad-blocker.css",
+                             "analyze_wildcard": True,
+                             "default_field": "*"
+                         }}]
+                     }}
+    return body
 
 def request_filter(kwargs):
     if "_msearch" in kwargs["path"]:
         print("ORIGINAL: %s" % kwargs["data"])
         lines = [json.loads(line) for line in kwargs["data"].strip(b"\n").split(b"\n")]
         kwargs["data"] = '\n'.join(json.dumps(line)
-                                   for line in flatten(msearch_query_filter(header, body)
+                                   for line in flatten((header, search_query_filter(body))
                                                        for header, body in zip(*[iter(lines)]*2))) + '\n'
         print("FILTERED: %s" % kwargs["data"])
+    elif "_search" in kwargs["path"]:
+        print(flask.request.headers)
+        print("\n")
+        print("ORIGINAL: %s" % kwargs["data"])
+        kwargs["data"] = json.dumps(search_query_filter(json.loads(kwargs["data"])))
+        print("FILTERED: %s" % kwargs["data"])
+        print("\n\n")
     return kwargs
 
-@app.route('/', methods=['HEAD', 'GET', 'POST', 'PUT'])
-@app.route('/<path:path>', methods=['HEAD', 'GET', 'POST', 'PUT'])
+@app.route('/', methods=['HEAD', 'GET', 'POST', 'PUT', 'DELETE'])
+@app.route('/<path:path>', methods=['HEAD', 'GET', 'POST', 'PUT', 'DELETE'])
 def search(path=''):
     try:
         if debug > 0: print("%s %s %s" % (flask.request.method, path, flask.request.args))
@@ -64,6 +76,7 @@ def search(path=''):
         elif flask.request.method == 'POST': r = requests.post(url, **kwargs)
         elif flask.request.method == 'GET':  r = requests.get(url, **kwargs)
         elif flask.request.method == 'PUT':  r = requests.put(url, **kwargs)
+        elif flask.request.method == 'DELETE':  r = requests.delete(url, **kwargs)
 
         if kwargs.get("stream", False):
             content = r.iter_content()
