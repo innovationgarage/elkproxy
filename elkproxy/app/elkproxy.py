@@ -2,51 +2,92 @@ import json
 import flask
 import requests
 import werkzeug.datastructures
+import logging
 
 app = flask.Flask(__name__)
 
 debug = 0
 
-@app.route('/', methods=['HEAD', 'GET', 'POST'])
-@app.route('/<path:path>', methods=['HEAD', 'GET', 'POST'])
-def search(path=''):
-    if debug > 0: print("%s %s %s" % (flask.request.method, path, flask.request.args))
-    if debug > 1: print("    %s" % flask.request.headers)
-    if debug > 2: print("    " + "\n    ".join(flask.request.data.decode("utf-8").split('\n')))
+if debug == 0:    
+    logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
-    kwargs = {"params": flask.request.args,
-              "headers": werkzeug.datastructures.Headers(flask.request.headers)}
-
-    if "Transfer-Encoding" in kwargs["headers"]:
-        del kwargs["headers"]["Transfer-Encoding"]
-        kwargs["stream"] = True
+def flatten(it):
+    return (item for sublist in it for item in sublist)
     
-    if flask.request.method == 'HEAD':
-        r = requests.head('http://elasticsearch:9200/%s' % path, **kwargs)
-    elif flask.request.method == 'POST':
-        r = requests.post('http://elasticsearch:9200/%s' % path, data=flask.request.data, **kwargs)
-    elif flask.request.method == 'GET':
-        r = requests.get('http://elasticsearch:9200/%s' % path, **kwargs)
+def msearch_query_filter(header, body):
+    body["query"] = {"bool": {"must": [
+        {
+            "query_string": {
+                "query": "/styles/ad-blocker.css",
+                "analyze_wildcard": True,
+                "default_field": "*"
+            }
+        },
+        body["query"]
+    ]}}
+    return header, body
 
+def request_filter(kwargs):
+    if "_msearch" in kwargs["path"]:
+        print("ORIGINAL: %s" % kwargs["data"])
+        lines = [json.loads(line) for line in kwargs["data"].strip(b"\n").split(b"\n")]
+        kwargs["data"] = '\n'.join(json.dumps(line)
+                                   for line in flatten(msearch_query_filter(header, body)
+                                                       for header, body in zip(*[iter(lines)]*2))) + '\n'
+        print("FILTERED: %s" % kwargs["data"])
+    return kwargs
 
-    if kwargs.get("stream", False):
-        content = r.iter_content()
-    else:
-        content = r.text
-        
-    if debug > 0: print("    ->", r.status_code)
-    if debug > 1: print("    %s" % r.headers)
-    if debug > 2:
+@app.route('/', methods=['HEAD', 'GET', 'POST', 'PUT'])
+@app.route('/<path:path>', methods=['HEAD', 'GET', 'POST', 'PUT'])
+def search(path=''):
+    try:
+        if debug > 0: print("%s %s %s" % (flask.request.method, path, flask.request.args))
+        if debug > 1: print("    %s" % flask.request.headers)
+        if debug > 2: print("    " + "\n    ".join(flask.request.data.decode("utf-8").split('\n')))
+
+        kwargs = {"params": flask.request.args,
+                  "headers": werkzeug.datastructures.Headers(flask.request.headers),
+                  "data": flask.request.data,
+                  "path": path}
+                
+        if "Transfer-Encoding" in kwargs["headers"]:
+            del kwargs["headers"]["Transfer-Encoding"]
+            kwargs["stream"] = True
+        if 'search' in path:
+            kwargs["stream"] = True
+
+        kwargs = request_filter(kwargs)
+            
+        url = 'http://elasticsearch:9200/%s' % kwargs.pop("path")
+
+        if flask.request.method == 'HEAD':   r = requests.head(url, **kwargs)
+        elif flask.request.method == 'POST': r = requests.post(url, **kwargs)
+        elif flask.request.method == 'GET':  r = requests.get(url, **kwargs)
+        elif flask.request.method == 'PUT':  r = requests.put(url, **kwargs)
+
         if kwargs.get("stream", False):
-            print("        STREAM")
+            content = r.iter_content()
         else:
-            print("        " + "\n        ".join(content.split('\n')))
-        
-    resp = flask.Response(content, r.status_code)
-    for key, value in r.headers.items():
-        if key == 'content-encoding': continue # requests decodes this for us, so keeping this is misleading our client, breaking stuff
-        resp.headers[key] = value
-    return resp
+            content = r.text
+            
+        if debug > 0: print("    ->", r.status_code)
+        if debug > 1: print("    %s" % r.headers)
+        if debug > 2:
+            if kwargs.get("stream", False):
+                print("        STREAM")
+            else:
+                print("        " + "\n        ".join(content.split('\n')))
+
+        resp = flask.Response(content, r.status_code)
+        for key, value in r.headers.items():
+            if key == 'content-encoding': continue # requests decodes this for us, so keeping this is misleading our client, breaking stuff
+            resp.headers[key] = value
+        return resp
+    except Exception as e:
+        import traceback
+        print(e)
+        traceback.print_exc()
+        raise
     
 if __name__ == '__main__':
     app.run(debug=False,host='0.0.0.0', port=9200) #,threaded=True)
