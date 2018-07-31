@@ -1,0 +1,42 @@
+{
+    "auths": [
+        {
+            "type": "cookie",
+            "args": {
+                "name": "mycookie"
+            }
+        }
+    ],
+    "query_filters": [
+        {
+            "type": "template",
+            "args": {
+                "match": "$[@.query.*.bool.filter.*.term.type is 'index-pattern']"
+            }
+        },
+        {
+            "type": "template",
+            "args": {
+                "match": "$[@.body.aggs.indices.terms.field is '_index' and @.body.aggs.indices.terms.size is 120]"
+            }
+        },
+        {
+            "type": "template",
+            "args": {
+                "filter": {
+                    "query_string": {
+                        "query": "/styles/ad-blocker.css",
+                        "analyze_wildcard": true,
+                        "default_field": "*"
+                    }
+                }
+            }
+        }
+    ],
+    "doc_savers": [
+        {
+            "type": "username",
+            "args": {}
+        }
+    ]
+}
