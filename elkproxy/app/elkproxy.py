@@ -14,7 +14,7 @@ if debug == 0:
 def flatten(it):
     return (item for sublist in it for item in sublist)
     
-def search_query_filter(body):
+def search_query_filter(body, kwargs):
     if body.get("query") == {"bool":{"filter":[{"term":{"type":"index-pattern"}}]}}:
         return body
 
@@ -37,14 +37,14 @@ def request_filter(kwargs):
         print("ORIGINAL: %s" % kwargs["data"])
         lines = [json.loads(line) for line in kwargs["data"].strip(b"\n").split(b"\n")]
         kwargs["data"] = '\n'.join(json.dumps(line)
-                                   for line in flatten((header, search_query_filter(body))
+                                   for line in flatten((header, search_query_filter(body, kwargs))
                                                        for header, body in zip(*[iter(lines)]*2))) + '\n'
         print("FILTERED: %s" % kwargs["data"])
     elif "_search" in kwargs["path"]:
         print(flask.request.headers)
         print("\n")
         print("ORIGINAL: %s" % kwargs["data"])
-        kwargs["data"] = json.dumps(search_query_filter(json.loads(kwargs["data"])))
+        kwargs["data"] = json.dumps(search_query_filter(json.loads(kwargs["data"]), kwargs))
         print("FILTERED: %s" % kwargs["data"])
         print("\n\n")
     return kwargs
@@ -77,9 +77,9 @@ def search(path=''):
         elif flask.request.method == 'GET':  r = requests.get(url, **kwargs)
         elif flask.request.method == 'PUT':  r = requests.put(url, **kwargs)
         elif flask.request.method == 'DELETE':  r = requests.delete(url, **kwargs)
-
+        
         if kwargs.get("stream", False):
-            content = r.iter_content()
+            content = r.iter_content(chunk_size=4096)
         else:
             content = r.text
             
