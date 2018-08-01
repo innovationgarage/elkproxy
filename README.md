@@ -66,12 +66,37 @@ with the user query. The `$` context that the `match` expression and the `filter
 
     {"query": ES_QUERY,
      "body": REQUEST_BODY,
-     "kwargs": {
-         "metadata": {},
-         "method": HTTP_METHOD,
-         "params": URL_ARGS,
-         "headers": HTTP_HEADERS,
-         "path": path}}
+     "kwargs": KWARGS}
+
+Both match and filter are optional - if match is missing, the line matches andy query, if filter is missing, no extra terms
+are added to the query.
 
 ## Document saver plugins
+### Template
+    {"type": "template",
+     "args": {"match": "$[@.body.type is 'mydoc']",
+              "template": {
+                  "username": {"$": "$.kwargs.metadata.username"},
+                  "_": {"$": "$.body + @template()"}}}}
 
+The template plugin matches the document body using a [sakstig](https://innovationgarage.github.io/sakstig/) expression, and
+uses a [sakform](https://innovationgarage.github.io/sakstig/) template to rewrite it.  The `$` context that the `match` expression and the `template` template run against consists of
+
+    {"body": DOCUMENT_BODY,
+     "kwargs": KWARGS}
+
+Both match and template are optional - if match is missing, the line matches andy document, if template is missing the document is left unchanged.
+
+
+# Request kwargs
+
+Plugins generally have access to, and can modify, a dictionary of request data. The dictionary has the following members
+
+    "kwargs": {"metadata": METADATA_DICT,
+               "method": HTTP_METHOD,
+               "params": URL_ARGS,
+               "headers": HTTP_HEADERS,
+               "path": URL_PATH}}
+
+METADATA is in turn a dictionary that starts out empty, but that can be modified by plugins. This is used e.g.
+for storing user authentication data by the auth plugins.
