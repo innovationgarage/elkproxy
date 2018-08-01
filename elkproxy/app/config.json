@@ -11,7 +11,12 @@
         {
             "type": "template",
             "args": {
-                "match": "$[@.query.*.bool.filter.*.term.type is 'index-pattern']"
+                "match": "$[@.query.*.bool.filter.*.term.type is 'index-pattern']",
+                "filter": {
+                    "term": {
+                        "config.username" : {"$": "$.kwargs.metadata.username"}
+                    }
+                }
             }
         },
         {
