@@ -5,6 +5,11 @@ document downloads, uploads, and updates.
 
 The proxy uses a plugin system and a json based configuration file that scripts the plugins.
 
+# Installing elkproxy
+
+    cd elkproxy/app
+    python3 setup.py install
+
 # Running elkproxy
 
     elkproxy --config myconfig.json
@@ -100,3 +105,6 @@ Plugins generally have access to, and can modify, a dictionary of request data. 
 
 METADATA is in turn a dictionary that starts out empty, but that can be modified by plugins. This is used e.g.
 for storing user authentication data by the auth plugins.
+
+# Example config
+Example [config.json](https://github.com/innovationgarage/elkproxy/blob/master/elkproxy/app/config.json) suitable for kibana.
