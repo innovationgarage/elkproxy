@@ -60,8 +60,8 @@ Query filter plugins provide extra `filter` context query terms that are logical
      "args": {"match": "$[@.query.*.bool.filter.*.term.type is 'index-pattern']",
               "filter": {"term": {"config.username" : {"$": "$.kwargs.metadata.username"}}}}}
 
-The template plugin matches the query using a (sakstig)[https://innovationgarage.github.io/sakstig/] expression, and
-uses a (sakform)[https://innovationgarage.github.io/sakstig/] template to generate the extra query terms to be ANDed
+The template plugin matches the query using a [sakstig](https://innovationgarage.github.io/sakstig/) expression, and
+uses a [sakform](https://innovationgarage.github.io/sakstig/) template to generate the extra query terms to be ANDed
 with the user query. The `$` context that the `match` expression and the `filter` template run against consists of
 
     {"query": ES_QUERY,
