@@ -9,7 +9,7 @@ class AuthCookie(object):
         self.secret = secret
         self.hashfunction = hashfunction
         
-    def __call__(self, kwargs):
+    def __call__(self, body, kwargs):
         cookies = http.cookies.SimpleCookie(kwargs["headers"].get("Cookie"))
         if self.name not in cookies:
             return False
@@ -20,4 +20,7 @@ class AuthCookie(object):
             if getattr(hashlib, self.hashfunction or 'md5')(value + secret).hexdigest() != hsh:
                 return False
 
-        return value
+        print("Authenticated as %s" % value)
+        kwargs["metadata"]["username"] = value
+        
+        return True

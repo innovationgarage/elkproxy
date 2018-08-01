@@ -20,7 +20,7 @@ print("Available plugins:")
 for category, catplugins in plugins.items():
     print("  %s: %s"  % (category, ", ".join(catplugins.keys())))
 print()
-
+        
 class Proxy(object):
     def __init__(self, config):
         self.plugins = {}
@@ -59,24 +59,26 @@ class Proxy(object):
                      host=self.host,
                      port=self.port, *arg, **kw) #,threaded=True)
         
-    def process_plugins(self, category, data, kwargs):
-        print("%s processing %s (%s)" % (category, data, kwargs))
+    def process_plugins(self, category, data, kwargs, quiet=False):
+        if not quiet: print("%s processing %s (%s)" % (category, data, kwargs))
         for plugin in self.plugins[category]:
             descr = "%s.%s(%s)" % (category, plugin.spec["type"], plugin.spec.get("args", ""))
             try:
                 res = plugin(data, kwargs)
                 if res:
-                    print("  %s matched ->" % (descr,))
-                    print("    %s" % (res,))
-                    print("\n\n")
+                    if not quiet:
+                        print("  %s matched ->" % (descr,))
+                        print("    %s" % (res,))
+                        print("\n\n")
                     return res
                 else:
-                    print("  %s NOT matched" % (descr,))
+                    if not quiet: print("  %s NOT matched" % (descr,))
             except Exception as e:
-                print("  %s failed with %s" % (descr, e))
-                import traceback
-                traceback.print_exc()
-        print("\n\n")
+                if not quiet:
+                    print("  %s failed with %s" % (descr, e))
+                    import traceback
+                    traceback.print_exc()
+        if not quiet: print("\n\n")
         return data
         
     def search_query_filter(self, body, kwargs):
@@ -86,6 +88,8 @@ class Proxy(object):
         return self.process_plugins("doc_savers", body, kwargs)
 
     def request_filter(self, kwargs):
+        self.process_plugins("auths", None, kwargs, quiet=True)
+        
         if "_msearch" in kwargs["path"]:
             lines = [json.loads(line) for line in kwargs["data"].strip(b"\n").split(b"\n")]
             kwargs["data"] = '\n'.join(json.dumps(line)
@@ -112,7 +116,8 @@ class Proxy(object):
         if self.debug > 1: print("    %s" % flask.request.headers)
         if self.debug > 2: print("    " + "\n    ".join(flask.request.data.decode("utf-8").split('\n')))
 
-        kwargs = {"method": flask.request.method,
+        kwargs = {"metadata": {},
+                  "method": flask.request.method,
                   "params": flask.request.args,
                   "headers": werkzeug.datastructures.Headers(flask.request.headers),
                   "data": flask.request.data,
@@ -129,6 +134,7 @@ class Proxy(object):
         url = 'http://elasticsearch:9200/%s' % kwargs.pop("path")
 
         method = kwargs.pop("method")
+        kwargs.pop("metadata", None)
 
         if method == 'HEAD':   r = requests.head(url, **kwargs)
         elif method == 'POST': r = requests.post(url, **kwargs)
@@ -140,10 +146,10 @@ class Proxy(object):
             content = r.iter_content(chunk_size=4096)
         else:
             content = r.text
-
-        if self.debug > 0: print("    ->", r.status_code)
-        if self.debug > 1: print("    %s" % r.headers)
-        if self.debug > 2:
+            
+        if self.debug > 0 or r.status_code != 200: print("    ->", r.status_code)
+        if self.debug > 1 or r.status_code != 200: print("    %s" % r.headers)
+        if self.debug > 2 or r.status_code != 200:
             if kwargs.get("stream", False):
                 print("        STREAM")
             else:

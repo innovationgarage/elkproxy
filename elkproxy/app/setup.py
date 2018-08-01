@@ -27,7 +27,7 @@ setup(
             'template = elkproxy.filters:QueryFilterTemplate'
         ],
         'elkproxy_doc_savers': [
-            'username = elkproxy.docsavers:DocSaverUsername'
+            'template = elkproxy.docsavers:DocSaverTemplate'
         ]
     },
     scripts = ["contrib/get_completions"]

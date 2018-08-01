@@ -35,8 +35,26 @@
     ],
     "doc_savers": [
         {
-            "type": "username",
-            "args": {}
-        }
+            "type": "template",
+            "args": {
+                "match": "$[@.body.type is 'index-pattern']",
+                "template": {
+                    "config": {
+                        "username": {"$": "$.kwargs.metadata.username"},
+                        "_": {"$": "([$.body.config]+[{}])[0] + @template()"}
+                    },
+                    "_": {"$": "$.body + @template()"}
+                }
+            }
+        },
+        {
+            "type": "template",
+            "args": {
+                "template": {
+                    "username": {"$": "$.kwargs.metadata.username"},
+                    "_": {"$": "$.body + @template()"}
+                }
+            }
+        }        
     ]
 }
