@@ -1,4 +1,5 @@
-# elkproxy
+
+# &nbsp;<img src="ElkProxy.svg" alt="logo" height="40px"> elkproxy
 
 ElkProxy is a highly configurable proxy server that sits in front of an Elastic Search server and filters/rewrites searches,
 document downloads, uploads, and updates.
