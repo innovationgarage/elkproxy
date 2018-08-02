@@ -1,4 +1,6 @@
 {
+    "upstream": "http://elasticsearch:9200",
+    
     "auths": [
         {
             "type": "cookie",
@@ -74,5 +76,38 @@
                 }
             }
         }        
-    ]
+    ],
+
+    "logging": {
+        "version": 1,
+        "loggers": {
+            "werkzeug": {
+                "level": "WARN",
+                "handlers": ["screen"]
+            },
+            "elkproxy.proxy.request": {
+                "level": "ERROR",
+                "handlers": []
+            },
+            "elkproxy.proxy.plugins.auths": {
+                "level": "ERROR",
+                "handlers": []
+            },
+            "elkproxy": {
+                "level": "INFO",
+                "handlers": ["screen"]
+            }
+        },
+        "handlers": {
+            "screen": {
+                "class": "logging.StreamHandler",
+                "formatter": "text"
+            }
+        },
+        "formatters": {
+            "text": {
+                "format": "%(message)s"
+            }
+        }
+    }
 }

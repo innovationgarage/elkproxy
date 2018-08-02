@@ -6,6 +6,15 @@ import werkzeug.exceptions
 import logging
 import pkg_resources
 import elkproxy.sakstig_functions
+import logging
+import logging.config
+import traceback
+
+log = logging.getLogger(__name__)
+log_auths = logging.getLogger(__name__ + ".plugins.auths")
+log_query_filters = logging.getLogger(__name__ + ".plugins.query_filters")
+log_doc_savers = logging.getLogger(__name__ + ".plugins.doc_savers")
+log_request = logging.getLogger(__name__ + ".request")
 
 def flatten(it):
     return (item for sublist in it for item in sublist)
@@ -18,10 +27,10 @@ for plugin_category in plugin_categories:
     for entry_point in pkg_resources.iter_entry_points("elkproxy_" + plugin_category):
         plugins[plugin_category][entry_point.name] = entry_point.load()
 
-print("Available plugins:")
+log.info("Available plugins:")
 for category, catplugins in plugins.items():
-    print("  %s: %s"  % (category, ", ".join(catplugins.keys())))
-print()
+    log.info("  %s: %s"  % (category, ", ".join(catplugins.keys())))
+log.info("")
         
 class Proxy(object):
     def __init__(self, config):
@@ -33,10 +42,10 @@ class Proxy(object):
                 plugin.spec = plugin_spec
                 self.plugins[plugin_category].append(plugin)
 
-        self.debug = config.get("debug", 0)
-        if self.debug == 0:
-            logging.getLogger('werkzeug').setLevel(logging.ERROR)
-        
+        logging.config.dictConfig(config.get('logging', {"version": 1}))
+
+        self.url = config.get("upstream", "http://elasticsearch:9200")
+            
         host, port = config.get("host", ":").split(":")
         host = host or '0.0.0.0'
         port = port and int(port) or 9200
@@ -63,43 +72,39 @@ class Proxy(object):
                      host=self.host,
                      port=self.port, *arg, **kw) #,threaded=True)
         
-    def process_plugins(self, category, context, default=None, quiet=False):
-        if not quiet: print("%s processing %s" % (category, context))
+    def process_plugins(self, category, context, default=None, log=log):
+        log.info("%s processing %s" % (category, context))
         for plugin in self.plugins[category]:
             descr = "%s.%s(%s)" % (category, plugin.spec["type"], plugin.spec.get("args", ""))
             try:
                 res = plugin(context)
                 if res:
-                    if not quiet:
-                        print("  %s matched ->" % (descr,))
-                        print("    %s" % (res,))
-                        print("\n\n")
+                    log.info("  %s matched ->" % (descr,))
+                    log.info("    %s" % (res,))
+                    log.info("\n\n")
                     return res
                 else:
-                    if not quiet: print("  %s NOT matched" % (descr,))
+                    log.warn("  %s NOT matched" % (descr,))
             except werkzeug.exceptions.HTTPException as e:
                 raise
             except Exception as e:
-                if not quiet:
-                    print("  %s failed with %s" % (descr, e))
-                    import traceback
-                    traceback.print_exc()
-        if not quiet: print("\n\n")
+                log.error("  %s failed with %s:\n%s" % (descr, e, traceback.format_exc()))
+        log.info("\n\n")
         return default
         
     def search_query_filter(self, body, kwargs):
         context = {"body": body,
                    "kwargs": kwargs,
                    "query": [q for q in [body.get("query")] if q is not None]}
-        return self.process_plugins("query_filters", context, default=body)
+        return self.process_plugins("query_filters", context, default=body, log=log_query_filters)
 
     def doc_filter(self, body, kwargs):
         context = {"body": body,
                    "kwargs": kwargs}        
-        return self.process_plugins("doc_savers", context, default=body)
+        return self.process_plugins("doc_savers", context, default=body, log=log_doc_savers)
 
     def request_filter(self, kwargs):
-        self.process_plugins("auths", {"kwargs": kwargs}, quiet=True)
+        self.process_plugins("auths", {"kwargs": kwargs}, log=log_auths)
         
         if "_msearch" in kwargs["path"]:
             lines = [json.loads(line) for line in kwargs["data"].strip(b"\n").split(b"\n")]
@@ -123,9 +128,9 @@ class Proxy(object):
         return kwargs
 
     def process(self, path=''):
-        if self.debug > 0: print("%s %s %s" % (flask.request.method, path, flask.request.args))
-        if self.debug > 1: print("    %s" % flask.request.headers)
-        if self.debug > 2: print("    " + "\n    ".join(flask.request.data.decode("utf-8").split('\n')))
+        log_request.info("%s %s %s" % (flask.request.method, path, flask.request.args))
+        log_request.debug("    %s" % flask.request.headers)
+        log_request.debug("    " + "\n    ".join(flask.request.data.decode("utf-8").split('\n')))
 
         kwargs = {"metadata": {},
                   "method": flask.request.method,
@@ -142,7 +147,7 @@ class Proxy(object):
 
         kwargs = self.request_filter(kwargs)
 
-        url = 'http://elasticsearch:9200/%s' % kwargs.pop("path")
+        url = '%s/%s' % (self.url, kwargs.pop("path"))
 
         method = kwargs.pop("method")
         kwargs.pop("metadata", None)
@@ -157,14 +162,20 @@ class Proxy(object):
             content = r.iter_content(chunk_size=4096)
         else:
             content = r.text
+
+        if r.status_code == 200:
+            low = log_request.info
+            high = log_request.debug
+        else:
+            low = log_request.warn
+            high = log_request.info            
             
-        if self.debug > 0 or r.status_code != 200: print("    ->", r.status_code)
-        if self.debug > 1 or r.status_code != 200: print("    %s" % r.headers)
-        if self.debug > 2 or r.status_code != 200:
-            if kwargs.get("stream", False):
-                print("        STREAM")
-            else:
-                print("        " + "\n        ".join(content.split('\n')))
+        low("    -> %s" % r.status_code)
+        high("    %s" % r.headers)
+        if kwargs.get("stream", False):
+            high("        STREAM")
+        else:
+            high("        " + "\n        ".join(content.split('\n')))
 
         resp = flask.Response(content, r.status_code)
         for key, value in r.headers.items():

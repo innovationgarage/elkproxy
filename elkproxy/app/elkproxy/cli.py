@@ -6,6 +6,7 @@ import os.path
 @click.command()
 @click.option('-d', '--debug', type=int)
 @click.option('-h', '--host')
+@click.option('-u', '--upstream')
 @click.option('-c', '--config', default='~/.config/elkproxy.json')
 def main(config, **kwargs):
     with open(os.path.expanduser(config)) as f:

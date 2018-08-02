@@ -9,7 +9,7 @@ setup(
     "and can be used to provide custom per-user query filters for e.g. "
     "Kibana",
     keywords = "elasticsearch kibana",
-    install_requires = ["Flask==0.10.1", "requests", "click", "sakstig"],
+    install_requires = ["Flask==0.10.1", "requests", "click", "sakstig", "requests"],
     version = "0.0.1",
     author = "RedHog (Egil Moeller)",
     author_email = "egil@innovationgarage.no",

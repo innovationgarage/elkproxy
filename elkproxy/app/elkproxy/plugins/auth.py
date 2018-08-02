@@ -2,6 +2,9 @@ import sakform
 import sakstig
 import http.cookies
 import hashlib
+import logging
+
+log = logging.getLogger(__name__)
 
 class AuthCookie(object):
     def __init__(self, name, secret=None, hashfunction=None):
@@ -20,7 +23,7 @@ class AuthCookie(object):
             if getattr(hashlib, self.hashfunction or 'md5')(value + secret).hexdigest() != hsh:
                 return False
 
-        print("Authenticated as %s" % value)
+        log.debug("Authenticated as %s" % value)
         context["kwargs"]["metadata"]["username"] = value
         
         return True
