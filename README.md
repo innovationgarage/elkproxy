@@ -98,14 +98,38 @@ Both match and template are optional - if match is missing, the line matches and
 
 Plugins generally have access to, and can modify, a dictionary of request data. The dictionary has the following members
 
-    "kwargs": {"metadata": METADATA_DICT,
-               "method": HTTP_METHOD,
-               "params": URL_ARGS,
-               "headers": HTTP_HEADERS,
-               "path": URL_PATH}}
+    KWARGS = {"metadata": METADATA_DICT,
+              "method": HTTP_METHOD,
+              "params": URL_ARGS,
+              "headers": HTTP_HEADERS,
+              "path": URL_PATH}}
 
 METADATA is in turn a dictionary that starts out empty, but that can be modified by plugins. This is used e.g.
 for storing user authentication data by the auth plugins.
 
 # Example config
 Example [config.json](https://github.com/innovationgarage/elkproxy/blob/master/elkproxy/app/config.json) suitable for kibana.
+
+# How to write plugins
+Plugins are python classes that are registered using setuptools entrypoints. The entry points are named after the plugin points, prefixed by "elkproxy_". Here, an auths plugin "myplugin" is registered:
+
+    setup(
+        entry_points={
+            'elkproxy_auths': [
+                'myplugin = mypackage.mymodule:MyPluginClass'
+            ]})
+
+Plugin classes are instantiated with keyword constructor arguments taken from the script line. It is entirely up to the
+plugin what arguments to accept or require, and how to interpret them.
+
+Plugin instances must be callable, and are always called with two arguments: `body` and `kwargs`. `kwargs` is the request kwargs, as described above, while `body` depends on the plugin point - for `query_filters`, this would be the query, for `doc_savers` its the document, and for `auths` it's just `None`.
+
+Plugins are expected to return either `False`, meaning that the script list execution continues, or some other value, meaning that the script list execution finishes with that value as output. For `query_filters` this is a query term to logically AND with the original query, for `doc_savers` this is the rewritten document body. For `auths` the output value is ignored.
+
+Note that plugins can modify the value of `kwargs`, even if they return `False`.
+
+    class MyPluginClass(object):
+        def __init__(self, **args):
+            pass
+        def __call__(self, body, kwargs):
+            return True
