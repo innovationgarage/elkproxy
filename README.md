@@ -122,7 +122,7 @@ Plugins are python classes that are registered using setuptools entrypoints. The
 Plugin classes are instantiated with keyword constructor arguments taken from the script line. It is entirely up to the
 plugin what arguments to accept or require, and how to interpret them.
 
-Plugin instances must be callable, and are always called with two arguments: `body` and `kwargs`. `kwargs` is the request kwargs, as described above, while `body` depends on the plugin point - for `query_filters`, this would be the query, for `doc_savers` its the document, and for `auths` it's just `None`.
+Plugin instances must be callable, and are always called with a dictionary containing at least two members: `body` and `kwargs`. `kwargs` is the request kwargs, as described above, while `body` depends on the plugin point - for `query_filters`, this would be the query, for `doc_savers` its the document, and for `auths` it's just `None`.
 
 Plugins are expected to return either `False`, meaning that the script list execution continues, or some other value, meaning that the script list execution finishes with that value as output. For `query_filters` this is a query term to logically AND with the original query, for `doc_savers` this is the rewritten document body. For `auths` the output value is ignored.
 
@@ -131,5 +131,5 @@ Note that plugins can modify the value of `kwargs`, even if they return `False`.
     class MyPluginClass(object):
         def __init__(self, **args):
             pass
-        def __call__(self, body, kwargs):
+        def __call__(self, context):
             return True

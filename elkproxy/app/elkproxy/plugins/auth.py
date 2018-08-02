@@ -9,8 +9,8 @@ class AuthCookie(object):
         self.secret = secret
         self.hashfunction = hashfunction
         
-    def __call__(self, body, kwargs):
-        cookies = http.cookies.SimpleCookie(kwargs["headers"].get("Cookie"))
+    def __call__(self, context):
+        cookies = http.cookies.SimpleCookie(context["kwargs"]["headers"].get("Cookie"))
         if self.name not in cookies:
             return False
         value = cookies[self.name].value
@@ -21,6 +21,6 @@ class AuthCookie(object):
                 return False
 
         print("Authenticated as %s" % value)
-        kwargs["metadata"]["username"] = value
+        context["kwargs"]["metadata"]["username"] = value
         
         return True

@@ -21,14 +21,16 @@ setup(
             'elkproxy = elkproxy.cli:main',
         ],
         'elkproxy_auths': [
-            'cookie = elkproxy.auth:AuthCookie'
+            'return = elkproxy.plugins.common:Return',
+            'cookie = elkproxy.plugins.auth:AuthCookie'
         ],
         'elkproxy_query_filters': [
-            'template = elkproxy.filters:QueryFilterTemplate'
+            'return = elkproxy.plugins.common:Return',
+            'template = elkproxy.plugins.filters:QueryFilterTemplate'
         ],
         'elkproxy_doc_savers': [
-            'template = elkproxy.docsavers:DocSaverTemplate',
-            'return = elkproxy.docsavers:DocSaverReturn'
+            'return = elkproxy.plugins.common:Return',
+            'template = elkproxy.plugins.docsavers:DocSaverTemplate'
         ]
     }
 )

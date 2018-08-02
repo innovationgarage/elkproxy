@@ -63,12 +63,12 @@ class Proxy(object):
                      host=self.host,
                      port=self.port, *arg, **kw) #,threaded=True)
         
-    def process_plugins(self, category, data, kwargs, quiet=False):
-        if not quiet: print("%s processing %s (%s)" % (category, data, kwargs))
+    def process_plugins(self, category, context, default=None, quiet=False):
+        if not quiet: print("%s processing %s" % (category, context))
         for plugin in self.plugins[category]:
             descr = "%s.%s(%s)" % (category, plugin.spec["type"], plugin.spec.get("args", ""))
             try:
-                res = plugin(data, kwargs)
+                res = plugin(context)
                 if res:
                     if not quiet:
                         print("  %s matched ->" % (descr,))
@@ -85,16 +85,21 @@ class Proxy(object):
                     import traceback
                     traceback.print_exc()
         if not quiet: print("\n\n")
-        return data
+        return default
         
     def search_query_filter(self, body, kwargs):
-        return self.process_plugins("query_filters", body, kwargs)
+        context = {"body": body,
+                   "kwargs": kwargs,
+                   "query": [q for q in [body.get("query")] if q is not None]}
+        return self.process_plugins("query_filters", context, default=body)
 
     def doc_filter(self, body, kwargs):
-        return self.process_plugins("doc_savers", body, kwargs)
+        context = {"body": body,
+                   "kwargs": kwargs}        
+        return self.process_plugins("doc_savers", context, default=body)
 
     def request_filter(self, kwargs):
-        self.process_plugins("auths", None, kwargs, quiet=True)
+        self.process_plugins("auths", {"kwargs": kwargs}, quiet=True)
         
         if "_msearch" in kwargs["path"]:
             lines = [json.loads(line) for line in kwargs["data"].strip(b"\n").split(b"\n")]
