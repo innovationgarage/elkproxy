@@ -29,6 +29,5 @@ setup(
         'elkproxy_doc_savers': [
             'template = elkproxy.docsavers:DocSaverTemplate'
         ]
-    },
-    scripts = ["contrib/get_completions"]
+    }
 )
