@@ -107,6 +107,20 @@ Plugins generally have access to, and can modify, a dictionary of request data. 
 METADATA is in turn a dictionary that starts out empty, but that can be modified by plugins. This is used e.g.
 for storing user authentication data by the auth plugins.
 
+# [sakstig](https://innovationgarage.github.io/sakstig/) extensions
+
+## http()
+The SakStig function
+
+    http(url, {name=value...})
+
+makes a http request using the python requests module. The optional dictionary of named parameters is sent to the requests method except for the parameter `method` that is used to select the method itself (it defaults to `get`). The function returns a QuerySet with one dictionary in it with the following members:
+
+    {"status": HTTP_STATUS,
+     "content": STRING_OR_JSON_OBJECT,
+     "headers": {NAME:VALUE...}}
+
+
 # Example config
 Example [config.json](https://github.com/innovationgarage/elkproxy/blob/master/elkproxy/app/config.json) suitable for kibana.
 
