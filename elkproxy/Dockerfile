@@ -6,6 +6,6 @@ RUN apt-get install -y sudo python3 python3-pip python3-dev build-essential mg
 ADD app /app
 WORKDIR /app
 
-RUN pip3 install -r requirements.txt
+RUN python3 setup.py develop
 
-CMD ["/bin/bash", "-c", "while sleep 1; do : ; done"]
+CMD ["/bin/bash", "-c", "LC_ALL=C.UTF-8 LANG=C.UTF-8 elkproxy -c config.json"]

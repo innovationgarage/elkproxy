@@ -14,7 +14,25 @@ The proxy uses a plugin system and a json based configuration file that scripts 
 # Running elkproxy
 
     elkproxy --config myconfig.json
-    
+
+# Demo environment
+
+This repository comes with a docker compose demo environment based on
+the official open source version of the ELK (Elastic Search, Logstash,
+Kibana) stack. It can be started with the following command
+
+    docker compose up -d
+
+and will expose kibana with some testing data on http://localhost:5601. You can modify elkproxy/app/config.json and run
+
+    docker-compose stop elkproxy
+    docker-compose up elkproxy
+
+to try out different configurations. If you run the elkproxy container
+without -d, logging configured in config.json will print to your
+terminal, making it possible to debug your plugin scripts.
+
+
 # Config language
 
 At the top level, the configuration consists of a set of plugin points with a script list for each. Example:
