@@ -55,6 +55,19 @@
         {
             "type": "template",
             "args": {
+                "match": "$[@.kwargs.path is '_template/kibana_index_template:.kibana' and http('http://elasticsearch:9200/_template/kibana_index_template:.kibana', {'method': 'head'}).status is 404]"
+            }
+        },
+        {
+            "type": "return",
+            "args": {
+                "match": "$[@.kwargs.path is '_template/kibana_index_template:.kibana']",
+                "document": {"response": "{}", "status":200}
+            }
+        },
+        {
+            "type": "template",
+            "args": {
                 "template": {
                     "username": {"$": "$.kwargs.metadata.username"},
                     "_": {"$": "$.body + @template()"}

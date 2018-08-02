@@ -2,8 +2,10 @@ import json
 import flask
 import requests
 import werkzeug.datastructures
+import werkzeug.exceptions
 import logging
 import pkg_resources
+import elkproxy.sakstig_functions
 
 def flatten(it):
     return (item for sublist in it for item in sublist)
@@ -48,6 +50,8 @@ class Proxy(object):
         def process(path=''):
             try:
                 return self.process(path)
+            except werkzeug.exceptions.HTTPException as e:
+                raise
             except Exception as e:
                 import traceback
                 print(e)
@@ -73,6 +77,8 @@ class Proxy(object):
                     return res
                 else:
                     if not quiet: print("  %s NOT matched" % (descr,))
+            except werkzeug.exceptions.HTTPException as e:
+                raise
             except Exception as e:
                 if not quiet:
                     print("  %s failed with %s" % (descr, e))

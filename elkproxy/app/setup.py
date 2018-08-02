@@ -27,7 +27,8 @@ setup(
             'template = elkproxy.filters:QueryFilterTemplate'
         ],
         'elkproxy_doc_savers': [
-            'template = elkproxy.docsavers:DocSaverTemplate'
+            'template = elkproxy.docsavers:DocSaverTemplate',
+            'return = elkproxy.docsavers:DocSaverReturn'
         ]
     }
 )
