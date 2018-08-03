@@ -35,21 +35,51 @@ terminal, making it possible to debug your plugin scripts.
 
 # Config language
 
-At the top level, the configuration consists of a set of plugin points with a script list for each. Example:
+At the top level, the configuration consist of a JSON object with a set of properties described below
 
-    {"auths": [{"type": "cookie",
-                "args": {...}}],
-     "query_filters": [{"type": "template",
-                        "args": {...}},
-                       {"type": "rest",
-                        "args": {...}}],
-     "doc_savers": [{"type": "template",
-                     "args": {...}},
-                    {"type": "template",
-                     "args": {...}}]}
+## Upstream ElastSearch url
+
+    "upstream": "http://elasticsearch:9200"
+
+The url to the upstream ElastSearch that elkproxy should connect to.
+
+## Server hostname and port
+
+    "host": "localhost:9200"
+
+The hostname (interface) and port that elkproxy should be reachable at.
+
+## Logging
+
+    "logging": {
+        "version": 1,
+        "loggers": {...},
+        "handlers": {...},
+        "formatters": {...}}
+
+Python logging configuration, in the format that can be supplied to
+[logging.config.dictConfig](https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig).
+
+## Plugin points and script lists
+
+    "auths": [{"type": "cookie",
+               "args": {...}}
+              ...],
+    "query_filters": [{"type": "template",
+                       "args": {...}},
+                      {"type": "rest",
+                       "args": {...}}
+                      ...],
+    "doc_savers": [{"type": "template",
+                    "args": {...}},
+                   {"type": "template",
+                    "args": {...}}
+                   ...]
                      
-The plugin points are for authentication plugins, filters for elastic search queries and
-filters for uploaded documents, respectively.
+The main operation of elkproxy is controlled by script lists run at
+various plugin points. The plugin points are for authentication
+plugins, filters for elastic search queries and filters for uploaded
+documents, respectively.
 
 A script list is executed in order from top to bottom until a line is reached that is able to process the request.
 That is, if multiple lines match a given request, the first one will be executed.
