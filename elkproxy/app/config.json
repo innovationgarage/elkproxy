@@ -65,7 +65,7 @@
             "type": "return",
             "args": {
                 "match": "$[@.kwargs.path is '_template/kibana_index_template:.kibana']",
-                "document": {"response": "{}", "status":200}
+                "document": {"response": {}, "status":200}
             }
         },
         {

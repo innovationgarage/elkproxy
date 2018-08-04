@@ -88,11 +88,80 @@ Each script list line consists of a type and some arguments. The type is the nam
 registered by an installed python package), and the arguments are (named) constructor arguments to the python class. It is entirely
 up to the class to determine what arguments are accepted or required, or what they mean.
 
-# Available plugins
-## Auth plugins
+## Sakstig expressions and sakform templates
+
+Some of the plugins can be scripted using
+[sakstig](https://innovationgarage.github.io/sakstig/) expressions for
+matching requests, and using
+[sakform](https://innovationgarage.github.io/sakstig/) templates for
+generating queries and documents. These allow fine grained
+programmatic control of JSON data matching and transformation,
+respectively.
+
+### Sakstig extensions
+
+#### http()
+The SakStig function
+
+    http(url, {name=value...})
+
+makes a http request using the python requests module. The optional
+dictionary of named parameters is sent to the requests method except
+for the parameter `method` that is used to select the method itself
+(it defaults to `get`). The function returns a QuerySet with one
+dictionary in it with the following members:
+
+    {"status": HTTP_STATUS,
+     "content": STRING_OR_JSON_OBJECT,
+     "headers": {NAME:VALUE...}}
+
+
+### Execution context
+
+Plugins run in a plugin point dependent context, described under each
+plugin point below. However, all contexts share a `kwargs` member with
+a dictionary of the http request properties. Plugins are free to
+modify these properties _even_if_ they do not match the current
+request, and script execution continues with the next line.
+
+    KWARGS = {"metadata": METADATA_DICT,
+              "method": HTTP_METHOD,
+              "params": URL_ARGS,
+              "headers": HTTP_HEADERS,
+              "path": URL_PATH}}
+
+METADATA is a dictionary that starts out empty, but that can be
+populated and modified by plugins. It is not used when generating the
+http request to the upstream ElasticSearch server. Instead, it can be
+used to transfer data between blugins, e.g. for storing user
+authentication data by the auth plugins that is later accessed by e.g.
+query filter plugins to generate restricted queries for the current
+user.
+
+## Available plugins
+
+### Plugins common to all plugin points
+
+#### Return
+
+    {"type": "return",
+     "args": {"match": "$[@.kwargs.path is '_template/kibana_index_template:.kibana']",
+              "document": {"response": {}, "status":200}}}
+
+The return plugin matches the current request using a sakstig
+expression, and uses a sakform template to generate a direct response,
+without passing the request on to the real ElasticSearch server.
+
+Since the sakstig expression can do http queries, it is possible to
+use this to e.g. check if a document already exists, or has a certain
+property set to some value, before allowing a document upload to
+proceed.
+
+
+### Auth plugins
 Authentication plugins sets $.kwargs.metadata.username to the name of the authenticated user if they succeed.
 
-### Cookie
+#### Cookie
 
     {"type": "cookie",
      "args": {"name": "COOKIE NAME", "secret": "MY SECRET", "hashfunction": "md5"}}
@@ -104,70 +173,51 @@ The cookie plugin authenticates against a simple hash signed cookie. The cookie 
 where `hash` must match `hashfunction(username+secret)`. The supported hashfunctions are the ones available in
 the python `hashlib` module.
 
-## Query filter plugins
+### Query filter plugins
 
-Query filter plugins provide extra `filter` context query terms that are logically ANDed to elastic search queries.
-
-### Template
-
-    {"type": "template",
-     "args": {"match": "$[@.query.*.bool.filter.*.term.type is 'index-pattern']",
-              "filter": {"term": {"config.username" : {"$": "$.kwargs.metadata.username"}}}}}
-
-The template plugin matches the query using a [sakstig](https://innovationgarage.github.io/sakstig/) expression, and
-uses a [sakform](https://innovationgarage.github.io/sakstig/) template to generate the extra query terms to be ANDed
-with the user query. The `$` context that the `match` expression and the `filter` template run against consists of
+Query filter plugins provide extra `filter` context query terms that
+are logically ANDed to elastic search queries. They are run in the
+following context:
 
     {"query": ES_QUERY,
      "body": REQUEST_BODY,
      "kwargs": KWARGS}
 
-Both match and filter are optional - if match is missing, the line matches andy query, if filter is missing, no extra terms
-are added to the query.
 
-## Document saver plugins
-### Template
+#### Template
+    {"type": "template",
+     "args": {"match": "$[@.query.*.bool.filter.*.term.type is 'index-pattern']",
+              "filter": {"term": {"config.username" : {"$": "$.kwargs.metadata.username"}}}}}
+
+The template plugin matches the query using a sakstig expression, and
+uses a sakform template to generate the extra query terms to be ANDed
+with the user query.
+
+Both match and filter are optional - if match is missing, the line
+matches any query, if filter is missing, no extra terms are added to
+the query.
+
+### Document saver plugins
+
+Document saver plugins can rewrite documents uploaded to
+ElasticSearch. They are run in the following context:
+
+    {"body": DOCUMENT_BODY,
+     "kwargs": KWARGS}
+
+#### Template
     {"type": "template",
      "args": {"match": "$[@.body.type is 'mydoc']",
               "template": {
                   "username": {"$": "$.kwargs.metadata.username"},
                   "_": {"$": "$.body + @template()"}}}}
 
-The template plugin matches the document body using a [sakstig](https://innovationgarage.github.io/sakstig/) expression, and
-uses a [sakform](https://innovationgarage.github.io/sakstig/) template to rewrite it.  The `$` context that the `match` expression and the `template` template run against consists of
+The template plugin matches the document body using a sakstig expression, and
+uses a sakform template to rewrite it.
 
-    {"body": DOCUMENT_BODY,
-     "kwargs": KWARGS}
-
-Both match and template are optional - if match is missing, the line matches andy document, if template is missing the document is left unchanged.
-
-
-# Request kwargs
-
-Plugins generally have access to, and can modify, a dictionary of request data. The dictionary has the following members
-
-    KWARGS = {"metadata": METADATA_DICT,
-              "method": HTTP_METHOD,
-              "params": URL_ARGS,
-              "headers": HTTP_HEADERS,
-              "path": URL_PATH}}
-
-METADATA is in turn a dictionary that starts out empty, but that can be modified by plugins. This is used e.g.
-for storing user authentication data by the auth plugins.
-
-# [sakstig](https://innovationgarage.github.io/sakstig/) extensions
-
-## http()
-The SakStig function
-
-    http(url, {name=value...})
-
-makes a http request using the python requests module. The optional dictionary of named parameters is sent to the requests method except for the parameter `method` that is used to select the method itself (it defaults to `get`). The function returns a QuerySet with one dictionary in it with the following members:
-
-    {"status": HTTP_STATUS,
-     "content": STRING_OR_JSON_OBJECT,
-     "headers": {NAME:VALUE...}}
-
+Both match and template are optional - if match is missing, the line
+matches andy document, if template is missing the document is left
+unchanged.
 
 # Example config
 Example [config.json](https://github.com/innovationgarage/elkproxy/blob/master/elkproxy/app/config.json) suitable for kibana.
