@@ -4,10 +4,8 @@
     
     "auths": [
         {
-            "type": "cookie",
-            "args": {
-                "name": "mycookie"
-            }
+            "type": "basic",
+            "args": {}
         }
     ],
     "query_filters": [
@@ -17,7 +15,7 @@
                 "match": "$[@.query.*.bool.filter.*.term.type is 'index-pattern']",
                 "filter": {
                     "term": {
-                        "config.username" : {"$": "$.kwargs.metadata.username"}
+                        "config.username" : {"$": "([$.kwargs.metadata.username]+['anonymous'])[0]"}
                     }
                 }
             }
@@ -48,7 +46,7 @@
                 "match": "$[@.body.type is 'index-pattern']",
                 "template": {
                     "config": {
-                        "username": {"$": "$.kwargs.metadata.username"},
+                        "username": {"$": "([$.kwargs.metadata.username] + ['anonymous'])[0]"},
                         "_": {"$": "([$.body.config]+[{}])[0] + @template()"}
                     },
                     "_": {"$": "$.body + @template()"}
@@ -72,7 +70,7 @@
             "type": "template",
             "args": {
                 "template": {
-                    "username": {"$": "$.kwargs.metadata.username"},
+                    "username": {"$": "([$.kwargs.metadata.username] + ['anonymous'])[0]"},
                     "_": {"$": "$.body + @template()"}
                 }
             }
@@ -90,12 +88,16 @@
                 "level": "ERROR",
                 "handlers": []
             },
+            "elkproxy.plugins.auth": {
+                "level": "DEBUG",
+                "handlers": []
+            },
             "elkproxy.proxy.plugins.auths": {
-                "level": "ERROR",
+                "level": "DEBUG",
                 "handlers": []
             },
             "elkproxy": {
-                "level": "INFO",
+                "level": "ERROR",
                 "handlers": ["screen"]
             }
         },
