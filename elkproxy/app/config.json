@@ -86,15 +86,19 @@
             },
             "elkproxy.proxy.request": {
                 "level": "ERROR",
-                "handlers": []
+                "handlers": ["screen"]
             },
-            "elkproxy.plugins.auth": {
-                "level": "DEBUG",
-                "handlers": []
+            "elkproxy.plugins.auths": {
+                "level": "ERROR",
+                "handlers": ["screen"]
             },
-            "elkproxy.proxy.plugins.auths": {
-                "level": "DEBUG",
-                "handlers": []
+            "elkproxy.plugins.query_filters.run": {
+                "level": "INFO",
+                "handlers": ["screen"]
+            },
+            "elkproxy.plugins.doc_savers.run": {
+                "level": "INFO",
+                "handlers": ["screen"]
             },
             "elkproxy": {
                 "level": "ERROR",

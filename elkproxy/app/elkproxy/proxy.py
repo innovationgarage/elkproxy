@@ -11,10 +11,11 @@ import logging.config
 import traceback
 
 log = logging.getLogger(__name__)
-log_auths = logging.getLogger(__name__ + ".plugins.auths")
-log_query_filters = logging.getLogger(__name__ + ".plugins.query_filters")
-log_doc_savers = logging.getLogger(__name__ + ".plugins.doc_savers")
 log_request = logging.getLogger(__name__ + ".request")
+
+log_auths = logging.getLogger("elkproxy.plugins.auths.run")
+log_query_filters = logging.getLogger("elkproxy.plugins.query_filters.run")
+log_doc_savers = logging.getLogger("elkproxy.plugins.doc_savers.run")
 
 def flatten(it):
     return (item for sublist in it for item in sublist)

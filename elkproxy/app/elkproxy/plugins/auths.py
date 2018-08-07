@@ -5,7 +5,7 @@ import hashlib
 import logging
 import base64
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(__name__ + ".details")
 
 class AuthCookie(object):
     def __init__(self, name, secret=None, hashfunction=None):

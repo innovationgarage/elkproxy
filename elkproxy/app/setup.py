@@ -22,16 +22,16 @@ setup(
         ],
         'elkproxy_auths': [
             'return = elkproxy.plugins.common:Return',
-            'cookie = elkproxy.plugins.auth:AuthCookie',
-            'basic = elkproxy.plugins.auth:AuthBasic'
+            'cookie = elkproxy.plugins.auths:AuthCookie',
+            'basic = elkproxy.plugins.auths:AuthBasic'
         ],
         'elkproxy_query_filters': [
             'return = elkproxy.plugins.common:Return',
-            'template = elkproxy.plugins.filters:QueryFilterTemplate'
+            'template = elkproxy.plugins.query_filters:QueryFilterTemplate'
         ],
         'elkproxy_doc_savers': [
             'return = elkproxy.plugins.common:Return',
-            'template = elkproxy.plugins.docsavers:DocSaverTemplate'
+            'template = elkproxy.plugins.doc_savers:DocSaverTemplate'
         ]
     }
 )
