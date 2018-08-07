@@ -27,13 +27,15 @@ for plugin_category in plugin_categories:
     for entry_point in pkg_resources.iter_entry_points("elkproxy_" + plugin_category):
         plugins[plugin_category][entry_point.name] = entry_point.load()
 
-log.info("Available plugins:")
-for category, catplugins in plugins.items():
-    log.info("  %s: %s"  % (category, ", ".join(catplugins.keys())))
-log.info("")
-        
 class Proxy(object):
     def __init__(self, config):
+        logging.config.dictConfig(config.get('logging', {"version": 1}))
+        
+        log.info("Available plugins:")
+        for category, catplugins in plugins.items():
+            log.info("  %s: %s"  % (category, ", ".join(catplugins.keys())))
+        log.info("")
+
         self.plugins = {}
         for plugin_category in plugin_categories:
             self.plugins[plugin_category] = []
@@ -41,8 +43,6 @@ class Proxy(object):
                 plugin = plugins[plugin_category][plugin_spec["type"]](**plugin_spec.get("args", {}))
                 plugin.spec = plugin_spec
                 self.plugins[plugin_category].append(plugin)
-
-        logging.config.dictConfig(config.get('logging', {"version": 1}))
 
         self.url = config.get("upstream", "http://elasticsearch:9200")
             
