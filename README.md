@@ -173,6 +173,16 @@ The cookie plugin authenticates against a simple hash signed cookie. The cookie 
 where `hash` must match `hashfunction(username+secret)`. The supported hashfunctions are the ones available in
 the python `hashlib` module.
 
+#### Basic
+
+    {"type": "basic",
+     "args": {}
+
+The basic plugin authenticates against the [HTTP
+Basic](https://en.wikipedia.org/wiki/Basic_access_authentication)
+authentication method. This is what is used if the user is logged in
+using Kibanas log in dialog.
+
 ### Query filter plugins
 
 Query filter plugins provide extra `filter` context query terms that
