@@ -22,7 +22,8 @@ setup(
         ],
         'elkproxy_auths': [
             'return = elkproxy.plugins.common:Return',
-            'cookie = elkproxy.plugins.auth:AuthCookie'
+            'cookie = elkproxy.plugins.auth:AuthCookie',
+            'basic = elkproxy.plugins.auth:AuthBasic'
         ],
         'elkproxy_query_filters': [
             'return = elkproxy.plugins.common:Return',

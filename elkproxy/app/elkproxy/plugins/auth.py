@@ -3,6 +3,7 @@ import sakstig
 import http.cookies
 import hashlib
 import logging
+import base64
 
 log = logging.getLogger(__name__)
 
@@ -26,4 +27,23 @@ class AuthCookie(object):
         log.debug("Authenticated as %s" % value)
         context["kwargs"]["metadata"]["username"] = value
         
+        return True
+
+class AuthBasic(object):
+    def __init__(self):
+        pass
+    
+    def __call__(self, context):
+        if "Authorization" not in context["kwargs"]["headers"]:
+            return False
+        auth = context["kwargs"]["headers"]["Authorization"]
+        if not auth.startswith("Basic"):
+            return False
+        auth = base64.b64decode(auth.split(" ")[-1]).decode("utf-8")
+        username, password = auth.split(":")
+
+        log.debug("Authenticated as %s" % username) 
+        context["kwargs"]["metadata"]["username"] = username
+        context["kwargs"]["metadata"]["password"] = password
+       
         return True
